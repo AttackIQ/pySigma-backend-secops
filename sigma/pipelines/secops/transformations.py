@@ -3,11 +3,12 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional, Union
 
 from sigma.correlations import SigmaCorrelationRule
-from sigma.processing.pipeline import ProcessingPipeline
 from sigma.processing.transformations import (
-    DetectionItemTransformation,
     FieldMappingTransformation,
     Transformation,
+)
+from sigma.processing.transformations.base import (
+    DetectionItemTransformation,
     ValueTransformation,
 )
 from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaRule
@@ -25,7 +26,7 @@ class PrependEventVariableTransformation(FieldMappingTransformation):
 
     mapping = {}
 
-    def get_mapping(self, field: str) -> Union[None, str, List[str]]:
+    def apply_field_name(self, field: str) -> Union[None, str, List[str]]:
         return f"$event1.{field}"
 
 
@@ -33,10 +34,10 @@ class PrependEventVariableTransformation(FieldMappingTransformation):
 class SetPrependMetadataTransformation(Transformation):
     prepend_metadata: bool
 
-    def apply(self, pipeline: ProcessingPipeline, rule: SigmaRule) -> None:
+    def apply(self, rule: Union[SigmaRule, SigmaCorrelationRule]) -> None:
         self.processing_item_applied(rule)
-        if pipeline.state.get("prepend_metadata", None) is None:
-            pipeline.state["prepend_metadata"] = self.prepend_metadata
+        if self._pipeline.state.get("prepend_metadata", None) is None:
+            self._pipeline.state["prepend_metadata"] = self.prepend_metadata
 
 
 @dataclass
@@ -103,10 +104,8 @@ class SetRuleEventTypeFromLogsourceTransformation(Transformation):
 
     def apply(
         self,
-        pipeline: ProcessingPipeline,
         rule: Union[SigmaRule, SigmaCorrelationRule],
     ) -> None:
-        self._pipeline: "sigma.processing.pipeline.ProcessingPipeline" = pipeline  # noqa: F821 # type: ignore
         if rule.custom_attributes.get("event_types", None):
             self.processing_item_applied(rule)
             if isinstance(rule.custom_attributes["event_types"], list) or isinstance(
@@ -142,15 +141,15 @@ class SetRuleEventTypeFromEventIDTransformation(DetectionItemTransformation):
             else:
                 if (
                     self.processing_item is None
-                    or self.processing_item.match_detection_item(self._pipeline, detection_item)
+                    or self.processing_item.match_detection_item(detection_item)
                 ) and (r := self.apply_detection_item(detection_item)) is not None:
                     self.processing_item_applied(detection.detection_items[i])
                     return r
 
     def apply(
-        self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", rule: SigmaRule  # noqa: F821 # type: ignore
+        self, rule: Union[SigmaRule, SigmaCorrelationRule]
     ) -> None:
-        super().apply(pipeline, rule)
+        super().apply(rule)
         if isinstance(rule, SigmaRule):
             for section_title, detection in rule.detection.detections.items():
                 if re.match(r"^sel.*", section_title):
@@ -168,12 +167,11 @@ class EventTypeFieldMappingTransformation(FieldMappingTransformation):
 
     def apply(
         self,
-        pipeline: "sigma.processing.pipeline.ProcessingPipeline",  # noqa: F821 # type: ignore
-        rule: Union[SigmaRule, SigmaCorrelationRule],  # noqa: F821 # type: ignore
+        rule: Union[SigmaRule, SigmaCorrelationRule],
     ) -> None:
         """Apply dynamic mapping before the field name transformations."""
         self.set_event_type_mapping(rule)  # Dynamically update the mapping
-        super().apply(pipeline, rule)  # Call parent method to continue the transformation process
+        super().apply(rule)  # Call parent method to continue the transformation process
 
     def set_event_type_mapping(self, rule: SigmaRule):
         """
