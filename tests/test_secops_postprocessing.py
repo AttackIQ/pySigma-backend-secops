@@ -24,14 +24,15 @@ def test_prepend_metadata_postprocessing():
 
     pipeline = ProcessingPipeline()
     transform = PrependMetadataPostprocessingTransformation()
+    transform._pipeline = pipeline
 
     # Test default format
-    result = transform.apply(pipeline, rule, "target.process.command_line = mimikatz.exe")
+    result = transform.apply(rule, "target.process.command_line = mimikatz.exe")
     assert "metadata.event_type =" in result
     assert "AND" in result
 
     # Test YARA-L format
     pipeline.state["output_format"] = "yara_l"
-    result = transform.apply(pipeline, rule, "target.process.command_line = mimikatz.exe")
+    result = transform.apply(rule, "target.process.command_line = mimikatz.exe")
     assert "$event1.metadata.event_type =" in result
     assert "OR" in result

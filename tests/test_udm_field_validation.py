@@ -1,5 +1,7 @@
 import json
+
 import pytest
+
 from sigma.pipelines.secops.mappings import get_field_mappings
 from sigma.pipelines.secops.validators import (
     check_value_type,
@@ -10,7 +12,7 @@ from sigma.pipelines.secops.validators import (
 
 @pytest.fixture
 def udm_schema():
-    with open("sigma/pipelines/secops/udm_field_schema.json", "r", encoding="utf-8") as f:
+    with open("sigma/pipelines/secops/udm_field_schema.json", encoding="utf-8") as f:
         return json.load(f)
 
 

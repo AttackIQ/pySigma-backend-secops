@@ -1,15 +1,14 @@
-from typing import Dict, Optional, Set
 from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaRule
 
 
-def get_rule_detection_fields(rule: SigmaRule) -> Set[str]:
+def get_rule_detection_fields(rule: SigmaRule) -> set[str]:
     fields = set()
     for detection_value in rule.detection.detections.values():
         fields.update(_get_fields_from_detection(detection_value))
     return fields
 
 
-def _get_fields_from_detection(detection_value) -> Set[str]:
+def _get_fields_from_detection(detection_value) -> set[str]:
     fields = set()
     if isinstance(detection_value, SigmaDetectionItem):
         if detection_value.field:
@@ -20,7 +19,7 @@ def _get_fields_from_detection(detection_value) -> Set[str]:
     return fields
 
 
-def determine_event_type_logsource(rule: SigmaRule) -> Optional[str]:
+def determine_event_type_logsource(rule: SigmaRule) -> str | None:
     category = rule.logsource.category
     service = rule.logsource.service
     product = rule.logsource.product
@@ -30,11 +29,11 @@ def determine_event_type_logsource(rule: SigmaRule) -> Optional[str]:
     return mappings.get(category) or mappings.get(service) or mappings.get(product)
 
 
-def determine_event_type_event_id(event_id: str) -> Optional[str]:
+def determine_event_type_event_id(event_id: str) -> str | None:
     return get_windows_event_id_mapping().get(event_id)
 
 
-def get_category_mapping() -> Dict[str, str]:
+def get_category_mapping() -> dict[str, str]:
     return {
         "process_creation": "PROCESS_LAUNCH",
         "process_access": "PROCESS_OPEN",
@@ -58,7 +57,7 @@ def get_category_mapping() -> Dict[str, str]:
     }
 
 
-def get_service_mapping() -> Dict[str, str]:
+def get_service_mapping() -> dict[str, str]:
     return {
         "firewall": "NETWORK_CONNECTION",
         "dns": "NETWORK_DNS",
@@ -69,7 +68,7 @@ def get_service_mapping() -> Dict[str, str]:
     }
 
 
-def get_product_mapping() -> Dict[str, str]:
+def get_product_mapping() -> dict[str, str]:
     return {
         "apache": "NETWORK_HTTP",
         "nginx": "NETWORK_HTTP",
@@ -78,7 +77,7 @@ def get_product_mapping() -> Dict[str, str]:
     }
 
 
-def get_windows_event_id_mapping() -> Dict[str, str]:
+def get_windows_event_id_mapping() -> dict[str, str]:
     return {
         "1": "PROCESS_LAUNCH",
         "3": "NETWORK_CONNECTION",
@@ -164,4 +163,4 @@ def get_field_mapping_type(event_type: str) -> str:
         "STATUS_SHUTDOWN": "common",
         "STATUS_UPDATE": "common",
     }
-    return mapping.get(event_type, None)
+    return mapping.get(event_type)

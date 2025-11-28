@@ -3,9 +3,9 @@ from sigma.rule import SigmaRule
 
 
 class PrependMetadataPostprocessingTransformation(QueryPostprocessingTransformation):
-    def apply(self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", rule: SigmaRule, query: str) -> str:  # type: ignore # noqa: F821
+    def apply(self, rule: SigmaRule, query: str) -> str:  # type: ignore
         event_types = rule.custom_attributes.get("event_types", set())
-        if pipeline.state.get("output_format", "default") == "yara_l":
+        if self._pipeline.state.get("output_format", "default") == "yara_l":
             metadata_eventtype = " OR ".join(
                 [f'$event1.metadata.event_type = "{event_type}"' for event_type in event_types]
             )
@@ -16,7 +16,7 @@ class PrependMetadataPostprocessingTransformation(QueryPostprocessingTransformat
 
 
 class YaraLPostprocessingTransformation(QueryPostprocessingTransformation):
-    def apply(self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", rule: SigmaRule, query: str) -> str:  # type: ignore # noqa: F821
+    def apply(self, rule: SigmaRule, query: str) -> str:  # type: ignore
         # Split the query into lines and remove any leading/trailing whitespace
         query_lines = [line.strip() for line in query.split("\n") if line.strip()]
 
@@ -34,12 +34,12 @@ rule {rule.title.lower().replace(" ", "_")} {{
     date = "{rule.date}"
     tags = "{", ".join(str(t) for t in rule.tags)}"
     severity = "{rule.level}"
-    falsepositives = "{", ".join(rule.falsepositives) if rule.falsepositives else "Unknown"}" 
+    falsepositives = "{", ".join(rule.falsepositives) if rule.falsepositives else "Unknown"}"
 
   events:
     {indented_query}
-    
-  conditions: 
+
+  conditions:
     $event1
 }}
     """

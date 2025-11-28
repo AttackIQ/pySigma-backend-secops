@@ -1,17 +1,21 @@
-from sigma.processing.pipeline import ProcessingPipeline, ProcessingItem, QueryPostprocessingItem
-from .transformations import PrependEventVariableTransformation
+from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline, QueryPostprocessingItem
+
 from .postprocessing import YaraLPostprocessingTransformation
+from .transformations import PrependEventVariableTransformation
 
 
-prepend_event_variable_transformation = ProcessingItem(
-    identifier="yara_l_prepend_event_variable",
-    transformation=PrependEventVariableTransformation(mapping={}),
-)
+def _prepend_event_variable_item() -> ProcessingItem:
+    return ProcessingItem(
+        identifier="yara_l_prepend_event_variable",
+        transformation=PrependEventVariableTransformation(mapping={}),
+    )
 
-output_format_postprocessing_item = QueryPostprocessingItem(
-    identifier="yara_l_output_format_postprocessing",
-    transformation=YaraLPostprocessingTransformation(),
-)
+
+def _output_format_postprocessing_item() -> QueryPostprocessingItem:
+    return QueryPostprocessingItem(
+        identifier="yara_l_output_format_postprocessing",
+        transformation=YaraLPostprocessingTransformation(),
+    )
 
 
 def yara_l_pipeline() -> ProcessingPipeline:
@@ -22,7 +26,7 @@ def yara_l_pipeline() -> ProcessingPipeline:
     return ProcessingPipeline(
         name="Google SecOps YARA-L 2.0 Output Format Pipeline",
         priority=60,
-        items=[prepend_event_variable_transformation],
-        postprocessing_items=[output_format_postprocessing_item],
+        items=[_prepend_event_variable_item()],
+        postprocessing_items=[_output_format_postprocessing_item()],
         allowed_backends=["secops"],
     )
