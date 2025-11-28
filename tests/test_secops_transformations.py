@@ -3,6 +3,7 @@ import json
 import pytest
 
 from sigma.pipelines.secops import secops_udm_pipeline
+from sigma.pipelines.secops.errors import InvalidUDMFieldError
 from sigma.pipelines.secops.transformations import (
     EnsureValidUDMFieldsTransformation,
 )
@@ -11,7 +12,7 @@ from sigma.rule import SigmaRule
 
 @pytest.fixture
 def udm_schema():
-    with open("sigma/pipelines/secops/udm_field_schema.json", "r", encoding="utf-8") as f:
+    with open("sigma/pipelines/secops/udm_field_schema.json", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -53,7 +54,7 @@ def test_ensure_valid_udm_fields_transformation(udm_schema):
     )
 
     transform = EnsureValidUDMFieldsTransformation(udm_schema)
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidUDMFieldError):
         transform.apply(rule)
 
 

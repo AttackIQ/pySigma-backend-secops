@@ -11,10 +11,9 @@ def secops_backend():
 
 
 def test_secops_and_expression(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -26,17 +25,14 @@ def test_secops_and_expression(secops_backend: SecOpsBackend):
                     User: valueB
                 condition: sel
         """
-            )
         )
-        == ['target.process.command_line = "valueA" nocase AND target.user.userid = "valueB" nocase']
-    )
+    ) == ['target.process.command_line = "valueA" nocase AND target.user.userid = "valueB" nocase']
 
 
 def test_secops_or_expression(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -49,17 +45,14 @@ def test_secops_or_expression(secops_backend: SecOpsBackend):
                     User: valueB
                 condition: 1 of sel*
         """
-            )
         )
-        == ['target.process.command_line = "valueA" nocase OR target.user.userid = "valueB" nocase']
-    )
+    ) == ['target.process.command_line = "valueA" nocase OR target.user.userid = "valueB" nocase']
 
 
 def test_secops_or_expression_parens(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -73,19 +66,16 @@ def test_secops_or_expression_parens(secops_backend: SecOpsBackend):
                     User: valueB
                 condition: 1 of sel*
         """
-            )
         )
-        == [
-            '(target.process.command_line = "valueA" nocase AND target.process.file.full_path = "cmd.exe" nocase) OR target.user.userid = "valueB" nocase'
-        ]
-    )
+    ) == [
+        '(target.process.command_line = "valueA" nocase AND target.process.file.full_path = "cmd.exe" nocase) OR target.user.userid = "valueB" nocase'
+    ]
 
 
 def test_secops_and_or_expression(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -101,17 +91,14 @@ def test_secops_and_or_expression(secops_backend: SecOpsBackend):
                         - valueB2
                 condition: sel
         """
-            )
         )
-        == ["target.process.command_line = /valueA1|valueA2/ nocase AND target.process.pid = /valueB1|valueB2/ nocase"]
-    )
+    ) == ["target.process.command_line = /valueA1|valueA2/ nocase AND target.process.pid = /valueB1|valueB2/ nocase"]
 
 
 def test_secops_or_and_expression(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -126,19 +113,16 @@ def test_secops_or_and_expression(secops_backend: SecOpsBackend):
                     ProcessId: valueB2
                 condition: 1 of sel*
         """
-            )
         )
-        == [
-            '(target.process.command_line = "valueA1" nocase AND target.process.pid = "valueB1" nocase) OR (target.process.command_line = "valueA2" nocase AND target.process.pid = "valueB2" nocase)'
-        ]
-    )
+    ) == [
+        '(target.process.command_line = "valueA1" nocase AND target.process.pid = "valueB1" nocase) OR (target.process.command_line = "valueA2" nocase AND target.process.pid = "valueB2" nocase)'
+    ]
 
 
 def test_secops_in_expression(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -152,17 +136,14 @@ def test_secops_in_expression(secops_backend: SecOpsBackend):
                         - valueC
                 condition: sel
         """
-            )
         )
-        == ["target.process.command_line = /valueA|valueB|valueC/ nocase"]
-    )
+    ) == ["target.process.command_line = /valueA|valueB|valueC/ nocase"]
 
 
 def test_secops_regex_query(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -174,17 +155,14 @@ def test_secops_regex_query(secops_backend: SecOpsBackend):
                     ProcessId: pid:1234
                 condition: sel
         """
-            )
         )
-        == ['target.process.command_line = /foo.*bar/ nocase AND target.process.pid = "pid:1234" nocase']
-    )
+    ) == ['target.process.command_line = /foo.*bar/ nocase AND target.process.pid = "pid:1234" nocase']
 
 
 def test_secops_cidr_query(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                """
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
             title: Test
             status: test
             logsource:
@@ -195,10 +173,8 @@ def test_secops_cidr_query(secops_backend: SecOpsBackend):
                     SourceIp|cidr: 192.168.0.0/16
                 condition: sel
         """
-            )
         )
-        == ['net.ip_in_range_cidr(principal.ip, "192.168.0.0/16")']
-    )
+    ) == ['net.ip_in_range_cidr(principal.ip, "192.168.0.0/16")']
 
 
 def test_secops_negation_basic(secops_backend: SecOpsBackend):
@@ -226,10 +202,9 @@ def test_secops_negation_basic(secops_backend: SecOpsBackend):
 
 
 def test_secops_negation_contains(secops_backend: SecOpsBackend):
-    assert (
-        secops_backend.convert_rule(
-            SigmaRule.from_yaml(
-                r"""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            r"""
             title: Test
             status: test
             logsource:
@@ -246,12 +221,10 @@ def test_secops_negation_contains(secops_backend: SecOpsBackend):
                         - '*notthis*'
                 condition: selection and not filter
         """
-            )
         )
-        == [
-            "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND target.process.command_line != /notthis/ nocase"
-        ]
-    )
+    ) == [
+        "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND target.process.command_line != /notthis/ nocase"
+    ]
 
 
 def test_secops_grouping(secops_backend: SecOpsBackend):
@@ -389,7 +362,7 @@ def test_secops_or_grouping_regex_escaping(secops_backend: SecOpsBackend):
     assert (
         secops_backend.convert_rule(
             SigmaRule.from_yaml(
-                """
+                r"""
 title: Suspicious Dev Tunnel Process
 id: 0ef42ab3-e707-490e-ab9e-b0564a72acdc
 related:

@@ -1,1 +1,1 @@
-from .secops import SecOpsBackend
+from .secops import SecOpsBackend as SecOpsBackend

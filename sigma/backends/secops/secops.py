@@ -2,7 +2,7 @@ import json
 from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib import resources
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, ClassVar
 
 from sigma.conditions import (
     ConditionAND,
@@ -38,39 +38,41 @@ from sigma.types import (
 
 @dataclass
 class ExpressionPair:
-    positive: Optional[str]
-    negative: Optional[str]
+    positive: str | None
+    negative: str | None
 
 
 class SecOpsBackend(TextQueryBackend):
     """Google SecOps UDM backend.
-    This backend is used to convert Sigma rules into UDM queries with the following considerations/modifications in mind:
-    - The UDM search does not support the IN operator, so we have to use the eq_token operator with a regex.
-    - Forward slashes are used to denote regex in a UDM search, so we have to escape them when they are part of a string.
-    - UDM search values are case-sensitive, so we have to add the nocase operator when necessary.
-    - In a NOT operation, UDM search will match on the first NOT condition and ignore the rest, so we have to split NOT IN regex into multiple conditions.
-    - NOT appears to give us inconsistent results when compared to !=, so we have to use != instead of NOT.
+
+    This backend converts Sigma rules into UDM queries with these considerations:
+    - UDM search does not support IN operator, so we use eq_token with regex.
+    - Forward slashes denote regex in UDM, so we escape them in strings.
+    - UDM search is case-sensitive, so we add nocase operator when necessary.
+    - In NOT operations, UDM matches only the first NOT condition, so we split
+      NOT IN regex into multiple conditions.
+    - NOT gives inconsistent results vs !=, so we use != instead of NOT.
     """
 
     name: ClassVar[str] = "Google SecOps UDM backend"
     identifier: ClassVar[str] = "secops"
-    formats: Dict[str, str] = {
+    formats: dict[str, str] = {
         "default": "Plain UDM queries",
         "yara_l": "YARA-L 2.0 Detection Rules Output Format",
     }
 
-    udm_schema: ClassVar[Dict[str, Any]] = json.loads(
+    udm_schema: ClassVar[dict[str, Any]] = json.loads(
         resources.read_text("sigma.pipelines.secops", "udm_field_schema.json")
     )
 
-    output_format_processing_pipeline: ClassVar[Dict[str, ProcessingPipeline]] = {
+    output_format_processing_pipeline: ClassVar[dict[str, ProcessingPipeline]] = {
         "default": ProcessingPipeline(),
         "yara_l": yara_l_pipeline(),
     }
 
     requires_pipeline: bool = True
 
-    precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (
+    precedence: ClassVar[tuple[type[ConditionItem], type[ConditionItem], type[ConditionItem]]] = (
         ConditionOR,
         ConditionAND,
         ConditionNOT,
@@ -95,11 +97,11 @@ class SecOpsBackend(TextQueryBackend):
     re_not_expression: ClassVar[str] = "{field} != /{regex}/ nocase"
     re_expression: ClassVar[str] = "{field} = /{regex}/ nocase"
     re_escape_char: ClassVar[str] = "\\"
-    re_escape: ClassVar[Tuple[str]] = ('"', "/")
+    re_escape: ClassVar[tuple[str]] = ('"', "/")
     add_escaped_re: ClassVar[str] = "/"
 
     compare_op_expression: ClassVar[str] = "{field} {operator} {value}"
-    compare_operators: ClassVar[Dict[SigmaCompareExpression.CompareOperators, str]] = {
+    compare_operators: ClassVar[dict[SigmaCompareExpression.CompareOperators, str]] = {
         SigmaCompareExpression.CompareOperators.LT: "<",
         SigmaCompareExpression.CompareOperators.LTE: "<=",
         SigmaCompareExpression.CompareOperators.GT: ">",
@@ -122,24 +124,23 @@ class SecOpsBackend(TextQueryBackend):
     unbound_value_re_expression: ClassVar[str] = "{value}"
 
     # String matching operators. if none is appropriate eq_token is used.
-    # Since we are using regex, we need to add  '.*' where appropriate, but this is done in the convert_value_str method.
-    startswith_expression: ClassVar[Optional[str]] = "{field} = /^{value}/ nocase"
-    case_sensitive_startswith_expression: ClassVar[Optional[str]] = "{field} = /^{value}/"
-    not_startswith_expression: ClassVar[Optional[str]] = "{field} != /^{value}/ nocase"
-    endswith_expression: ClassVar[Optional[str]] = "{field} = /{value}$/ nocase"
-    case_sensitive_endswith_expression: ClassVar[Optional[str]] = "{field} = /{value}$/"
-    not_endswith_expression: ClassVar[Optional[str]] = "{field} != /{value}$/ nocase"
-    contains_expression: ClassVar[Optional[str]] = "{field} = /{value}/ nocase"
-    case_sensitive_contains_expression: ClassVar[Optional[str]] = "{field} = /{value}/"
-    not_contains_expression: ClassVar[Optional[str]] = "{field} != /{value}/ nocase"
-    wildcard_match_expression: ClassVar[Optional[str]] = (
+    # Since we use regex, we add '.*' where appropriate in convert_value_str.
+    startswith_expression: ClassVar[str | None] = "{field} = /^{value}/ nocase"
+    case_sensitive_startswith_expression: ClassVar[str | None] = "{field} = /^{value}/"
+    not_startswith_expression: ClassVar[str | None] = "{field} != /^{value}/ nocase"
+    endswith_expression: ClassVar[str | None] = "{field} = /{value}$/ nocase"
+    case_sensitive_endswith_expression: ClassVar[str | None] = "{field} = /{value}$/"
+    not_endswith_expression: ClassVar[str | None] = "{field} != /{value}$/ nocase"
+    contains_expression: ClassVar[str | None] = "{field} = /{value}/ nocase"
+    case_sensitive_contains_expression: ClassVar[str | None] = "{field} = /{value}/"
+    not_contains_expression: ClassVar[str | None] = "{field} != /{value}/ nocase"
+    wildcard_match_expression: ClassVar[str | None] = (
         None  # Special expression if wildcards can't be matched with the eq_token operator
     )
 
     # cidr expressions
-    cidr_expression: ClassVar[str] = (
-        'net.ip_in_range_cidr({field}, "{value}")'  # CIDR expression query as format string with placeholders {field} = {value}
-    )
+    # CIDR expression query as format string with placeholders {field} = {value}
+    cidr_expression: ClassVar[str] = 'net.ip_in_range_cidr({field}, "{value}")'
 
     def __init__(self, processing_pipeline=None, **kwargs):
         super().__init__(processing_pipeline, **kwargs)
@@ -166,9 +167,11 @@ class SecOpsBackend(TextQueryBackend):
     def convert_value_str(self, s: SigmaString, state: ConversionState, quote_string: bool = True) -> str:
         """Convert a SigmaString into a plain string which can be used in query.
 
-        Override so when the wildcard is removed in startswith, endswith and contains expressions, we don't quote the string
+        Override so when the wildcard is removed in startswith, endswith and contains
+        expressions, we don't quote the string.
         """
-        # Endswith, startswith and contains expressions are converted to regex, so we need to convert the SigmaString to a regex and then to a plain string.
+        # Endswith, startswith and contains are converted to regex, so convert SigmaString
+        # to regex then to plain string.
         # Remove surrounding '.*' since its not needed in UDM, contains is implied
         if s.contains_special():
             plain_str = s.to_regex(custom_escaped=self.add_escaped_re).to_plain()
@@ -227,7 +230,7 @@ class SecOpsBackend(TextQueryBackend):
             self.contains_expression = original_expressions["contains_expression"]
 
     def convert_condition(
-        self, cond: ConditionType, state: ConversionState, parent_cond: Optional[ConditionType] = None
+        self, cond: ConditionType, state: ConversionState, parent_cond: ConditionType | None = None
     ) -> Any:
         """
         Convert query of Sigma rule into target data structure (usually query, see above).
@@ -256,7 +259,7 @@ class SecOpsBackend(TextQueryBackend):
         elif isinstance(cond, ConditionNOT):
             return self.convert_condition_not(cond, state)
         elif isinstance(cond, ConditionFieldEqualsValueExpression):
-            negation = True if isinstance(parent_cond, ConditionNOT) else False
+            negation = bool(isinstance(parent_cond, ConditionNOT))
             return self.convert_condition_field_eq_val(cond, state, negation)
         elif isinstance(cond, ConditionValueExpression):
             return self.convert_condition_val(cond, state)
@@ -297,7 +300,7 @@ class SecOpsBackend(TextQueryBackend):
 
     def convert_condition_or(
         self, cond: ConditionOR, state: ConversionState, negation: bool = False
-    ) -> Union[str, DeferredQueryExpression]:
+    ) -> str | DeferredQueryExpression:
         """Conversion of OR conditions."""
         try:
             if (
@@ -308,18 +311,16 @@ class SecOpsBackend(TextQueryBackend):
                 joiner = self.token_separator + self.or_token + self.token_separator
 
             converted = joiner.join(
-                (
-                    converted
-                    for converted in (
-                        (
-                            self.convert_condition(arg, state, parent_cond=cond.parent)
-                            if self.compare_precedence(cond, arg) or negation
-                            else self.convert_condition_group(arg, state)
-                        )
-                        for arg in cond.args
+                converted
+                for converted in (
+                    (
+                        self.convert_condition(arg, state, parent_cond=cond.parent)
+                        if self.compare_precedence(cond, arg) or negation
+                        else self.convert_condition_group(arg, state)
                     )
-                    if converted is not None and not isinstance(converted, DeferredQueryExpression)
+                    for arg in cond.args
                 )
+                if converted is not None and not isinstance(converted, DeferredQueryExpression)
             )
 
             # Don't group OR conditions if they do not have a parent, i.e. we are at te root level of a detection
@@ -328,12 +329,12 @@ class SecOpsBackend(TextQueryBackend):
                 return converted
             return self.group_expression.format(expr=converted)
 
-        except TypeError:  # pragma: no cover
-            raise NotImplementedError("Operator 'or' not supported by the backend")
+        except TypeError as err:  # pragma: no cover
+            raise NotImplementedError("Operator 'or' not supported by the backend") from err
 
     def convert_condition_and(
         self, cond: ConditionAND, state: ConversionState, negation: bool = False
-    ) -> Union[str, DeferredQueryExpression]:
+    ) -> str | DeferredQueryExpression:
         """Conversion of AND conditions."""
         try:
             if (
@@ -348,9 +349,7 @@ class SecOpsBackend(TextQueryBackend):
                 for converted in (
                     (
                         self.convert_condition(arg, state, parent_cond=cond.parent)
-                        if self.compare_precedence(cond, arg)
-                        or negation
-                        or isinstance(arg, ConditionNOT)
+                        if self.compare_precedence(cond, arg) or negation or isinstance(arg, ConditionNOT)
                         else self.convert_condition_group(arg, state)
                     )
                     for arg in cond.args
@@ -360,11 +359,10 @@ class SecOpsBackend(TextQueryBackend):
             converted = joiner.join(converted_parts)
             return converted
 
+        except TypeError as err:  # pragma: no cover
+            raise NotImplementedError("Operator 'and' not supported by the backend") from err
 
-        except TypeError:  # pragma: no cover
-            raise NotImplementedError("Operator 'and' not supported by the backend")
-
-    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState) -> Union[str, DeferredQueryExpression]:
+    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState) -> str | DeferredQueryExpression:
         """Conversion of NOT conditions."""
         arg = cond.args[0]
         try:
@@ -375,15 +373,16 @@ class SecOpsBackend(TextQueryBackend):
             if isinstance(expr, DeferredQueryExpression):
                 return expr.negate()
             return expr
-        except TypeError:  # pragma: no cover
-            raise NotImplementedError("Operator 'not' not supported by the backend")
+        except TypeError as err:  # pragma: no cover
+            raise NotImplementedError("Operator 'not' not supported by the backend") from err
 
     def convert_condition_field_eq_val_str(
         self, cond: ConditionFieldEqualsValueExpression, state: ConversionState
-    ) -> Union[str, DeferredQueryExpression]:
-        """Conversion of field = string value expressions
+    ) -> str | DeferredQueryExpression:
+        """Conversion of field = string value expressions.
 
-        Override so when the wildcard is removed in startswith, endswith and contains expressions, we don't quote the string
+        Override so when wildcard is removed in startswith/endswith/contains expressions,
+        we don't quote the string.
         """
         try:
             quote_string = self.decide_string_quoting(cond.value)
@@ -396,7 +395,7 @@ class SecOpsBackend(TextQueryBackend):
                     self.startswith_expression
                 )  # If all conditions are fulfilled, use 'startswith' operator instead of equal token
                 value = cond.value
-            elif (  # Same as above but for 'endswith' operator: string starts with wildcard and doesn't contains further special characters
+            elif (  # 'endswith': string starts with wildcard and has no other special chars
                 self.endswith_expression is not None
                 and cond.value.startswith(SpecialChars.WILDCARD_MULTI)
                 and not cond.value[1:].contains_special()
@@ -431,14 +430,14 @@ class SecOpsBackend(TextQueryBackend):
                 value=self.convert_value_str(value, state, quote_string),
                 backend=self,
             )
-        except TypeError:  # pragma: no cover
+        except TypeError as err:  # pragma: no cover
             raise NotImplementedError(
                 "Field equals string value expressions with strings are not supported by the backend."
-            )
+            ) from err
 
     def convert_condition_field_eq_val_num(
         self, cond: ConditionFieldEqualsValueExpression, state: ConversionState
-    ) -> Union[str, DeferredQueryExpression]:
+    ) -> str | DeferredQueryExpression:
         """Conversion of field = number value expressions
         Override to add
         """
@@ -450,15 +449,19 @@ class SecOpsBackend(TextQueryBackend):
                 + self.token_separator
                 + str(cond.value)
             )
-        except TypeError:  # pragma: no cover
-            raise NotImplementedError("Field equals numeric value expressions are not supported by the backend.")
+        except TypeError as err:  # pragma: no cover
+            raise NotImplementedError(
+                "Field equals numeric value expressions are not supported by the backend."
+            ) from err
 
     def convert_condition_as_in_expression(
-        self, cond: Union[ConditionOR, ConditionAND], state: ConversionState
-    ) -> Union[str, DeferredQueryExpression]:
+        self, cond: ConditionOR | ConditionAND, state: ConversionState
+    ) -> str | DeferredQueryExpression:
         """Conversion of field in value list conditions.
-        Overridden, as UDM search does not support the IN operator and we have to use the eq_token operator with a regex.
-        Replace wildcards with .* and add nocase."""
+
+        Overridden since UDM doesn't support IN operator - we use eq_token with regex.
+        Replace wildcards with .* and add nocase.
+        """
 
         return self.field_in_list_expression.format(
             field=self.escape_and_quote_field(cond.args[0].field),
@@ -467,15 +470,14 @@ class SecOpsBackend(TextQueryBackend):
         )
 
     def convert_condition_as_in_not_expression(
-        self, cond: Union[ConditionOR, ConditionAND], state: ConversionState
-    ) -> Union[str, DeferredQueryExpression]:
+        self, cond: ConditionOR | ConditionAND, state: ConversionState
+    ) -> str | DeferredQueryExpression:
         """Conversion of field in value list conditions for NOT expressions.
-        Overridden, as UDM search does not support the IN operator and we have to use the eq_token operator with a regex.
-        We also have to separate each expression with OR and not use | regex in one expression.
+
+        Overridden since UDM doesn't support IN operator - we use eq_token with regex.
+        We also separate each expression with AND instead of using | regex in one expression.
         """
-        joiner = (
-            self.token_separator + self.and_token + self.token_separator
-        )
+        joiner = self.token_separator + self.and_token + self.token_separator
         converted = [
             self.re_not_expression.format(
                 field=self.escape_and_quote_field(cond.args[0].field),
@@ -487,8 +489,10 @@ class SecOpsBackend(TextQueryBackend):
         return self.group_expression.format(expr=joiner.join(converted))
 
     def convert_value_for_in_expression(self, value, state):
-        """Convert a value for an IN expression.  SecOps does not support the IN operator, so we have to use the eq_token operator with a regex.
-        Therefore, we also have to escape the regex characters in the value's.
+        """Convert a value for an IN expression.
+
+        SecOps doesn't support IN operator, so we use eq_token with regex.
+        We also escape the regex characters in the values.
 
         Args:
             value (SigmaString): The value to convert.
@@ -536,7 +540,7 @@ class SecOpsBackend(TextQueryBackend):
         query = self.last_processing_pipeline.postprocess_query(rule, query)
         return query
 
-    def finalize_output_yara_l(self, queries: List[Any]) -> Any:
+    def finalize_output_yara_l(self, queries: list[Any]) -> Any:
         """
         Finalize output. Dispatches to format-specific method.
         """

@@ -1,6 +1,7 @@
-from sigma.processing.pipeline import ProcessingPipeline, ProcessingItem, QueryPostprocessingItem
-from .transformations import PrependEventVariableTransformation
+from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline, QueryPostprocessingItem
+
 from .postprocessing import YaraLPostprocessingTransformation
+from .transformations import PrependEventVariableTransformation
 
 
 def _prepend_event_variable_item() -> ProcessingItem:

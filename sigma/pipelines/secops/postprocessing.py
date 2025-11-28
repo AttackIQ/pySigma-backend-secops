@@ -34,12 +34,12 @@ rule {rule.title.lower().replace(" ", "_")} {{
     date = "{rule.date}"
     tags = "{", ".join(str(t) for t in rule.tags)}"
     severity = "{rule.level}"
-    falsepositives = "{", ".join(rule.falsepositives) if rule.falsepositives else "Unknown"}" 
+    falsepositives = "{", ".join(rule.falsepositives) if rule.falsepositives else "Unknown"}"
 
   events:
     {indented_query}
-    
-  conditions: 
+
+  conditions:
     $event1
 }}
     """

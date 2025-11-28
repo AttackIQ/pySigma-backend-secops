@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Dict
+
 from .utils import get_field_mapping_type
 
 # TODO: EventType field in sysmon logs, ensure value is valid for metadata.event_type
@@ -7,7 +7,7 @@ from .utils import get_field_mapping_type
 
 
 @lru_cache(maxsize=128)
-def get_field_mappings() -> Dict[str, Dict[str, str]]:
+def get_field_mappings() -> dict[str, dict[str, str]]:
     return {
         "common": {
             "AccessMask": "target.process.access_mask",
@@ -114,7 +114,7 @@ def get_field_mappings() -> Dict[str, Dict[str, str]]:
     }
 
 
-def get_field_mappings_by_event_type(metadata_event_type: str) -> Dict[str, str]:
+def get_field_mappings_by_event_type(metadata_event_type: str) -> dict[str, str]:
     """
     Get the field mappings for a given event type
 
