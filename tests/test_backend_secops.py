@@ -462,3 +462,232 @@ level: low
         )[0]
         == '(target.process.file.full_path = /\\\\regedit\\.exe$/ nocase OR target.process.file.names = "REGEDIT.EXE" nocase) AND target.process.command_line = / -E / nocase AND ((target.process.command_line != /hklm/ nocase AND target.process.command_line != /hkey_local_machine/ nocase) OR (target.process.command_line != /\\\\system/ nocase AND target.process.command_line != /\\\\sam/ nocase AND target.process.command_line != /\\\\security/ nocase))'
     )
+
+
+def test_secops_numeric_value(secops_backend: SecOpsBackend):
+    """Test numeric field values (SigmaNumber)."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    ProcessId: 1234
+                condition: sel
+        """
+        )
+    ) == ["target.process.pid = 1234"]
+
+
+def test_secops_compare_expression_gt(secops_backend: SecOpsBackend):
+    """Test compare expression with greater than operator."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    ProcessId|gt: 1000
+                condition: sel
+        """
+        )
+    ) == ["target.process.pid > 1000"]
+
+
+def test_secops_compare_expression_lt(secops_backend: SecOpsBackend):
+    """Test compare expression with less than operator."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    ProcessId|lt: 500
+                condition: sel
+        """
+        )
+    ) == ["target.process.pid < 500"]
+
+
+def test_secops_compare_expression_gte(secops_backend: SecOpsBackend):
+    """Test compare expression with greater than or equal operator."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    ProcessId|gte: 100
+                condition: sel
+        """
+        )
+    ) == ["target.process.pid >= 100"]
+
+
+def test_secops_compare_expression_lte(secops_backend: SecOpsBackend):
+    """Test compare expression with less than or equal operator."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    ProcessId|lte: 999
+                condition: sel
+        """
+        )
+    ) == ["target.process.pid <= 999"]
+
+
+def test_secops_null_value(secops_backend: SecOpsBackend):
+    """Test null field value expression."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine: null
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line = ""']
+
+
+def test_secops_exists_true(secops_backend: SecOpsBackend):
+    """Test field exists expression (exists: true)."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|exists: true
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line != ""']
+
+
+def test_secops_exists_false(secops_backend: SecOpsBackend):
+    """Test field not exists expression (exists: false)."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|exists: false
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line = ""']
+
+
+def test_secops_case_sensitive_contains(secops_backend: SecOpsBackend):
+    """Test case-sensitive string matching with contains."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|contains|cased: SensitiveValue
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line = /"SensitiveValue"/']
+
+
+def test_secops_case_sensitive_startswith(secops_backend: SecOpsBackend):
+    """Test case-sensitive string matching with startswith."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|startswith|cased: StartValue
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line = /^"StartValue"/']
+
+
+def test_secops_case_sensitive_endswith(secops_backend: SecOpsBackend):
+    """Test case-sensitive string matching with endswith."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|endswith|cased: EndValue
+                condition: sel
+        """
+        )
+    ) == ['target.process.command_line = /"EndValue"$/']
+
+
+def test_secops_unbound_keyword_string(secops_backend: SecOpsBackend):
+    """Test unbound/keyword string value (no field specified)."""
+    assert secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                keywords:
+                    - malware
+                    - suspicious
+                condition: keywords
+        """
+        )
+    ) == ['(""malware"" OR ""suspicious"")']
