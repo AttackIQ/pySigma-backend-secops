@@ -1,8 +1,8 @@
 import pytest
 
 from sigma.backends.secops import SecOpsBackend
-from sigma.collection import SigmaRule
 from sigma.pipelines.secops import secops_udm_pipeline
+from sigma.rule import SigmaRule
 
 
 @pytest.fixture
@@ -355,7 +355,7 @@ def test_secops_yara_l_output_format(secops_backend: SecOpsBackend):
     assert "rule test {" in output[0]
     assert "meta:" in output[0]
     assert "events:" in output[0]
-    assert "conditions:" in output[0]
+    assert "condition:" in output[0]
 
 
 def test_secops_or_grouping_regex_escaping(secops_backend: SecOpsBackend):
