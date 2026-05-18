@@ -39,7 +39,7 @@ rule {rule.title.lower().replace(" ", "_")} {{
   events:
     {indented_query}
 
-  conditions:
+  condition:
     $event1
 }}
     """
