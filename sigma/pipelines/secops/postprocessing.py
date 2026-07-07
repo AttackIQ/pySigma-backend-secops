@@ -23,18 +23,31 @@ class YaraLPostprocessingTransformation(QueryPostprocessingTransformation):
         # Join the lines with proper indentation
         indented_query = "\n    ".join(query_lines)
 
+        meta_lines = [f'    title = "{rule.title}"']
+
+        if rule.id:
+            meta_lines.append(f'    id = "{rule.id}"')
+        if rule.description:
+            meta_lines.append(f'    description = "{rule.description}"')
+        if rule.author:
+            meta_lines.append(f'    author = "{rule.author}"')
+        if rule.references:
+            meta_lines.append(f'    reference = "{", ".join(rule.references)}"')
+        if rule.date:
+            meta_lines.append(f'    date = "{rule.date}"')
+        if rule.tags:
+            meta_lines.append(f'    tags = "{", ".join(str(tag) for tag in rule.tags)}"')
+        if rule.level:
+            meta_lines.append(f'    severity = "{rule.level}"')
+        if rule.falsepositives:
+            meta_lines.append(f'    falsepositives = "{", ".join(rule.falsepositives)}"')
+
+        meta_block = "\n".join(meta_lines)
+
         return f"""
 rule {rule.title.lower().replace(" ", "_")} {{
   meta:
-    id = "{rule.id}"
-    title = "{rule.title}"
-    description = "{rule.description}"
-    author = "{rule.author}"
-    reference = "{", ".join(rule.references)}"
-    date = "{rule.date}"
-    tags = "{", ".join(str(t) for t in rule.tags)}"
-    severity = "{rule.level}"
-    falsepositives = "{", ".join(rule.falsepositives) if rule.falsepositives else "Unknown"}"
+{meta_block}
 
   events:
     {indented_query}
